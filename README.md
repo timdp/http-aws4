@@ -24,6 +24,9 @@ Delete the index:
 haws delete https://ES-DOMAIN.us-east-1.es.amazonaws.com/INDEX-NAME
 ```
 
+If the name of the AWS service and/or region cannot be detected from the URL,
+you can set them manually using the `--service` and `--region` options.
+
 ## Author
 
 [Tim De Pauw](https://github.com/timdp)

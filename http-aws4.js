@@ -15,13 +15,16 @@ const CONSOLE_COLORS = [
   ['error', 'red']
 ]
 
-const {_: args, region} = yargs
+const argv = yargs
   .demand(1)
   .usage('Usage: $0 [options] [method] <url>')
-  .string('region').alias('r', 'region').default('region', 'us-east-1')
+  .string('region').alias('r', 'region')
   .string('service')
   .argv
-let service, method, url
+
+const args = argv._
+let service, method, url, region
+
 if (/^\w+$/.test(args[0])) {
   method = args.shift().toUpperCase()
   url = args.shift()
@@ -29,9 +32,16 @@ if (/^\w+$/.test(args[0])) {
   url = args.shift()
   method = 'GET'
 }
+
+region = argv.region
+if (region == null) {
+  region = /([a-z0-9-]+)\.\w+\.amazonaws\.com\//i.exec(url)[1]
+}
+
 if (service == null) {
   service = /(\w+)\.amazonaws\.com\//i.exec(url)[1]
 }
+
 const headers = {}
 while (args.length > 0) {
   const arg = args.shift()
