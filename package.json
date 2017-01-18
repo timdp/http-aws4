@@ -1,6 +1,6 @@
 {
   "name": "http-aws4",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Performs AWS Signature Version 4-signed HTTP requests from the command line.",
   "author": "Tim De Pauw <hi@tmdpw.eu> (https://tmdpw.eu/)",
   "engines": {
@@ -34,6 +34,15 @@
     "prepublish": "npm run build"
   },
   "babel": {
-    "presets": [["env", {"targets": {"node": 4}}]]
+    "presets": [
+      [
+        "env",
+        {
+          "targets": {
+            "node": 4
+          }
+        }
+      ]
+    ]
   }
 }
