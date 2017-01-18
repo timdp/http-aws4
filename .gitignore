@@ -3,3 +3,4 @@
 npm-debug.log
 
 /node_modules/
+/http-aws4.js
