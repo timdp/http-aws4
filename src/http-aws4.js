@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const AWS = require('aws-sdk')
+const normalizeUrl = require('normalize-url')
 const cardinal = require('cardinal')
 const chalk = require('chalk')
 const cleanStack = require('clean-stack')
@@ -36,13 +37,18 @@ if (/^\w+$/.test(args[0])) {
   method = 'GET'
 }
 
+url = normalizeUrl(url, {
+  stripWWW: false,
+  removeQueryParameters: null
+})
+
 region = argv.region
 if (region == null) {
-  region = /([a-z0-9-]+)\.\w+\.amazonaws\.com\//i.exec(url)[1]
+  region = /([a-z0-9-]+)\.\w+\.amazonaws\.com(?:\/|:|$)/i.exec(url)[1]
 }
 
 if (service == null) {
-  service = /(\w+)\.amazonaws\.com\//i.exec(url)[1]
+  service = /(\w+)\.amazonaws\.com(?:\/|:|$)/i.exec(url)[1]
 }
 
 const headers = {}
