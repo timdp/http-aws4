@@ -7,6 +7,9 @@ const cleanStack = require('clean-stack')
 const getStdin = require('get-stdin')
 const pify = require('pify')
 const yargs = require('yargs')
+const pkg = require('./package.json')
+
+const USER_AGENT = `${pkg.name}/${pkg.version} (https://github.com/${pkg.repository})`
 
 const CONSOLE_COLORS = [
   ['log', 'blue'],
@@ -46,7 +49,7 @@ const headers = {}
 while (args.length > 0) {
   const arg = args.shift()
   const pos = arg.indexOf(':')
-  headers[arg.substr(0, pos)] = arg.substr(pos + 1)
+  headers[arg.substr(0, pos).toLowerCase()] = arg.substr(pos + 1)
 }
 
 const config = new AWS.Config({region})
@@ -97,6 +100,18 @@ const handleError = (err) => {
   process.exit(1)
 }
 
+const normalizeHeaders = (headers) => {
+  const names = Object.keys(headers)
+  for (let i = 0; i < names.length; ++i) {
+    const name = names[i]
+    const nameLower = name.toLowerCase()
+    if (name !== nameLower) {
+      headers[nameLower] = headers[name]
+      delete headers[name]
+    }
+  }
+}
+
 const createRequest = (method, url, body, credentials) => {
   const endpoint = new AWS.Endpoint(url)
   const request = Object.assign(new AWS.HttpRequest(endpoint), {
@@ -104,7 +119,11 @@ const createRequest = (method, url, body, credentials) => {
     method,
     body
   })
-  Object.assign(request.headers, headers, {Host: endpoint.host})
+  normalizeHeaders(request.headers)
+  Object.assign(request.headers,
+    {'user-agent': USER_AGENT},
+    headers,
+    {host: endpoint.host})
   const signer = new AWS.Signers.V4(request, service)
   signer.addAuthorization(credentials, new Date())
   return request
