@@ -3,6 +3,7 @@
 const AWS = require('aws-sdk')
 const normalizeUrl = require('normalize-url')
 const cardinal = require('cardinal')
+const lowercaseKeys = require('lowercase-keys')
 const chalk = require('chalk')
 const cleanStack = require('clean-stack')
 const getStdin = require('get-stdin')
@@ -106,18 +107,6 @@ const handleError = (err) => {
   process.exit(1)
 }
 
-const normalizeHeaders = (headers) => {
-  const names = Object.keys(headers)
-  for (let i = 0; i < names.length; ++i) {
-    const name = names[i]
-    const nameLower = name.toLowerCase()
-    if (name !== nameLower) {
-      headers[nameLower] = headers[name]
-      delete headers[name]
-    }
-  }
-}
-
 const createRequest = (method, url, body, credentials) => {
   const endpoint = new AWS.Endpoint(url)
   const request = Object.assign(new AWS.HttpRequest(endpoint), {
@@ -125,8 +114,8 @@ const createRequest = (method, url, body, credentials) => {
     method,
     body
   })
-  normalizeHeaders(request.headers)
-  Object.assign(request.headers,
+  request.headers = Object.assign(
+    lowercaseKeys(request.headers),
     {'user-agent': USER_AGENT},
     headers,
     {host: endpoint.host})
