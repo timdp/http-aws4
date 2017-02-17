@@ -23,8 +23,31 @@ const CONSOLE_COLORS = [
 const argv = yargs
   .demand(1)
   .usage('Usage: $0 [options] [method] <url>')
-  .string('region').alias('r', 'region')
-  .string('service')
+  .options({
+    print: {
+      alias: 'p',
+      requiresArg: true,
+      default: 'hb',
+      coerce: (val) => {
+        if (!/^[HBhb]+$/.test(val)) {
+          throw new Error('Allowed flags: HBhb')
+        }
+        return val
+      }
+    },
+    region: {
+      alias: 'r',
+      requiresArg: true,
+      default: null,
+      defaultDescription: '<auto>'
+    },
+    service: {
+      alias: 's',
+      requiresArg: true,
+      default: null,
+      defaultDescription: '<auto>'
+    }
+  })
   .argv
 
 const args = argv._
@@ -80,22 +103,26 @@ const formatHeaders = (headers, type) => {
 }
 
 const formatResponse = (resp, type = 'info') => {
-  logger[type](resp.statusCode + ' ' + resp.statusMessage)
-  if (resp.headers) {
-    formatHeaders(resp.headers, type)
+  if (~argv.print.indexOf('h')) {
+    logger[type](chalk.bold(`${resp.statusCode} ${resp.statusMessage}`))
+    if (resp.headers) {
+      formatHeaders(resp.headers, type)
+      logger[type]()
+    }
   }
-  logger[type]()
-  let body = resp.body
-  if (/\bjson\b/.test(resp.headers['content-type'])) {
-    try {
-      body = JSON.stringify(JSON.parse(body), null, 2)
-      if (type !== 'error' && chalk.enabled) {
-        logger[type].bare(cardinal.highlight(body))
-        return
-      }
-    } catch (err) {}
+  if (~argv.print.indexOf('b')) {
+    let body = resp.body
+    if (/\bjson\b/.test(resp.headers['content-type'])) {
+      try {
+        body = JSON.stringify(JSON.parse(body), null, 2)
+        if (type !== 'error' && chalk.enabled) {
+          logger[type].bare(cardinal.highlight(body))
+          return
+        }
+      } catch (err) {}
+    }
+    logger[type]((body != null) ? body : '')
   }
-  logger[type]((body != null) ? body : '[empty response]')
 }
 
 const handleError = (err) => {
@@ -124,10 +151,16 @@ const createRequest = (method, url, body, credentials) => {
   return request
 }
 
-const handleRequest = (request) => new Promise((resolve, reject) => {
-  logger.log(request.method + ' ' + request.endpoint.href)
-  formatHeaders(request.headers, 'log')
-  logger.log()
+const handleRequest = (request, body) => new Promise((resolve, reject) => {
+  if (~argv.print.indexOf('H')) {
+    logger.log(chalk.bold(`${request.method} ${request.endpoint.href}`))
+    formatHeaders(request.headers, 'log')
+    logger.log()
+  }
+  if (~argv.print.indexOf('B')) {
+    logger.log((body != null) ? body.toString().trimRight() : '')
+    logger.log()
+  }
   client.handleRequest(request, null, resolve, reject)
 })
 
@@ -159,7 +192,7 @@ const getCredentials = pify(config.getCredentials).bind(config)
 Promise.all([getStdin(), getCredentials()])
   .then(([body, credentials]) => {
     const request = createRequest(method, url, body, credentials)
-    return handleRequest(request)
+    return handleRequest(request, body)
   })
   .then(handleResponse)
   .then(formatResponse)

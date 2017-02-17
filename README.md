@@ -28,12 +28,28 @@ haws delete https://search-....us-east-1.es.amazonaws.com/blog
 
 ## Options
 
-### --region REGION
+### --print FLAGS, -p FLAGS
+
+Controls which parts of the requests are output. Allowed flags:
+
+| Flag | Meaning          |
+|:----:|------------------|
+| `H`  | Request headers  |
+| `B`  | Request body     |
+| `h`  | Response headers |
+| `b`  | Response body |
+
+For example, `-p Hhb` would print the request headers, the response headers, and
+the response body.
+
+The default value is `hb`, meaning the response headers and response body.
+
+### --region REGION, -r REGION
 
 If the name of the AWS region cannot be detected from the URL, use this option
 to set it manually.
 
-### --service SERVICE
+### --service SERVICE, -s SERVICE
 
 If the name of the AWS service cannot be detected from the URL, use this option
 to set it manually.
