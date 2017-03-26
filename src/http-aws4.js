@@ -71,6 +71,7 @@ if (region == null) {
   region = /([a-z0-9-]+)\.\w+\.amazonaws\.com(?:\/|:|$)/i.exec(url)[1]
 }
 
+service = argv.service
 if (service == null) {
   service = /(\w+)\.amazonaws\.com(?:\/|:|$)/i.exec(url)[1]
 }
