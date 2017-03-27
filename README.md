@@ -30,19 +30,32 @@ haws delete https://search-....us-east-1.es.amazonaws.com/blog
 
 ### --print FLAGS, -p FLAGS
 
-Controls which parts of the requests are output. Allowed flags:
+Controls which parts of the request are output. Allowed flags:
 
 | Flag | Meaning          |
 |:----:|------------------|
 | `H`  | Request headers  |
 | `B`  | Request body     |
 | `h`  | Response headers |
-| `b`  | Response body |
+| `b`  | Response body    |
 
 For example, `-p Hhb` would print the request headers, the response headers, and
 the response body.
 
 The default value is `hb`, meaning the response headers and response body.
+
+### --pretty OUTPUT
+
+Controls pretty-printing of the response body. Allowed values:
+
+| Value    | Meaning                    |
+|:--------:|----------------------------|
+| `all`    | Both colors and formatting |
+| `colors` | Just colors                |
+| `format` | Just formatting            |
+| `none`   | Raw                        |
+
+The default value is `all`, except for redirected output, where it is `none`.
 
 ### --region REGION, -r REGION
 
@@ -56,7 +69,7 @@ to set it manually.
 
 ### --no-color
 
-If you prefer not to colorize the output, pass this option, provided by
+If you prefer not to colorize the output at all, pass this option, provided by
 [supports-color](https://www.npmjs.com/package/supports-color).
 
 ## Request Headers

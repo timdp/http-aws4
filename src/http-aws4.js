@@ -2,9 +2,9 @@
 
 const AWS = require('aws-sdk')
 const normalizeUrl = require('normalize-url')
-const cardinal = require('cardinal')
 const lowercaseKeys = require('lowercase-keys')
 const chalk = require('chalk')
+const emphasize = require('emphasize')
 const cleanStack = require('clean-stack')
 const getStdin = require('get-stdin')
 const pify = require('pify')
@@ -34,6 +34,11 @@ const argv = yargs
         }
         return val
       }
+    },
+    pretty: {
+      requiresArg: true,
+      choices: ['all', 'colors', 'format', 'none'],
+      default: process.stdout.isTTY ? 'all' : 'none'
     },
     region: {
       alias: 'r',
@@ -103,6 +108,22 @@ const formatHeaders = (headers, type) => {
   }
 }
 
+const indent = (code, resp) => {
+  if (resp.headers && /\bjson\b/.test(resp.headers['content-type'])) {
+    try {
+      return JSON.stringify(JSON.parse(code), null, 2)
+    } catch (err) {}
+  }
+  return code
+}
+
+const highlight = (code) => {
+  try {
+    return emphasize.highlightAuto(code).value
+  } catch (err) {}
+  return code
+}
+
 const formatResponse = (resp, type = 'info') => {
   if (~argv.print.indexOf('h')) {
     logger[type](chalk.bold(`${resp.statusCode} ${resp.statusMessage}`))
@@ -112,17 +133,22 @@ const formatResponse = (resp, type = 'info') => {
     }
   }
   if (~argv.print.indexOf('b')) {
-    let body = resp.body
-    if (/\bjson\b/.test(resp.headers['content-type'])) {
-      try {
-        body = JSON.stringify(JSON.parse(body), null, 2)
-        if (type !== 'error' && chalk.enabled) {
-          logger[type].bare(cardinal.highlight(body))
-          return
-        }
-      } catch (err) {}
+    if (resp.body == null || resp.body.length === 0) {
+      logger[type]('')
+    } else if (argv.pretty === 'none') {
+      logger[type](resp.body.toString())
+    } else {
+      const transforms = []
+      if (argv.pretty === 'all' || argv.pretty === 'format') {
+        transforms.push(indent)
+      }
+      if (argv.pretty === 'all' || argv.pretty === 'colors') {
+        transforms.push(highlight)
+      }
+      const output = transforms.reduce((prev, transform) => transform(prev, resp),
+        resp.body.toString())
+      logger[type].bare(output)
     }
-    logger[type]((body != null) ? body : '')
   }
 }
 
