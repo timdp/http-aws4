@@ -1,6 +1,6 @@
 {
   "name": "http-aws4",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Performs AWS Signature Version 4-signed HTTP requests from the command line.",
   "author": "Tim De Pauw <hi@tmdpw.eu> (https://tmdpw.eu/)",
   "engines": {
