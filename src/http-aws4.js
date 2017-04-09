@@ -117,10 +117,13 @@ const indent = (code, resp) => {
   return code
 }
 
-const highlight = (code) => {
-  try {
-    return emphasize.highlightAuto(code).value
-  } catch (err) {}
+const highlight = (code, resp) => {
+  // TODO Convert MIME type to highlight.js language
+  if (resp.headers && !/^text\/plain\b/.test(resp.headers['content-type'])) {
+    try {
+      return emphasize.highlightAuto(code).value
+    } catch (err) {}
+  }
   return code
 }
 
