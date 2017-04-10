@@ -42,7 +42,8 @@ Controls which parts of the request are output. Allowed flags:
 For example, `-p Hhb` would print the request headers, the response headers, and
 the response body.
 
-The default value is `hb`, meaning the response headers and response body.
+The default value is `hb` (response headers and response body), except for
+redirected output, where it is `b` (response body).
 
 ### --pretty OUTPUT
 

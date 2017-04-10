@@ -27,7 +27,7 @@ const argv = yargs
     print: {
       alias: 'p',
       requiresArg: true,
-      default: 'hb',
+      default: process.stdout.isTTY ? 'hb' : 'b',
       coerce: (val) => {
         if (!/^[HBhb]+$/.test(val)) {
           throw new Error('Allowed flags: HBhb')
