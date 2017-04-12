@@ -23,8 +23,11 @@ const CONSOLE_COLORS = [
 const argv = yargs
   .demand(1)
   .usage('Usage: $0 [options] [method] <url>')
+  .version()
+  .help()
   .options({
     print: {
+      description: 'Parts of the request and response to output',
       alias: 'p',
       requiresArg: true,
       default: process.stdout.isTTY ? 'hb' : 'b',
@@ -36,17 +39,20 @@ const argv = yargs
       }
     },
     pretty: {
+      description: 'Output formatting',
       requiresArg: true,
       choices: ['all', 'colors', 'format', 'none'],
       default: process.stdout.isTTY ? 'all' : 'none'
     },
     region: {
+      description: 'AWS region',
       alias: 'r',
       requiresArg: true,
       default: null,
       defaultDescription: '<auto>'
     },
     service: {
+      description: 'AWS service name',
       alias: 's',
       requiresArg: true,
       default: null,
