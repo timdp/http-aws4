@@ -228,9 +228,9 @@ const handleResponse = (response) => new Promise((resolve, reject) => {
   response.on('error', reject)
 })
 
-const getCredentials = (argv.profile) ?
-  () => Promise.resolve(new AWS.SharedIniFileCredentials({ profile: argv.profile })) :
-  pify(config.getCredentials).bind(config)
+const getCredentials = (argv.profile != null)
+  ? () => Promise.resolve(new AWS.SharedIniFileCredentials({ profile: argv.profile }))
+  : pify(config.getCredentials).bind(config)
 
 Promise.all([getStdin(), getCredentials()])
   .then(([body, credentials]) => {
