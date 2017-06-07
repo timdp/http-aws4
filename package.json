@@ -19,13 +19,13 @@
   "dependencies": {
     "aws-sdk": "^2.32.0",
     "chalk": "^1.1.3",
-    "clean-stack": "^1.1.1",
+    "clean-stack": "^1.3.0",
     "emphasize": "^1.2.0",
     "get-stdin": "^5.0.1",
     "lowercase-keys": "^1.0.0",
     "normalize-url": "^1.9.1",
-    "pify": "^2.3.0",
-    "yargs": "^7.0.2"
+    "pify": "^3.0.0",
+    "yargs": "^8.0.1"
   },
   "devDependencies": {
     "babel-cli": "^6.24.0",
