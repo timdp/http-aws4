@@ -51,6 +51,11 @@ const argv = yargs
       default: null,
       defaultDescription: '<auto>'
     },
+    profile: {
+      description: 'AWS profile',
+      requiresArg: true,
+      default: null
+    },
     service: {
       description: 'AWS service name',
       alias: 's',
@@ -223,7 +228,9 @@ const handleResponse = (response) => new Promise((resolve, reject) => {
   response.on('error', reject)
 })
 
-const getCredentials = pify(config.getCredentials).bind(config)
+const getCredentials = (argv.profile) ?
+  () => Promise.resolve(new AWS.SharedIniFileCredentials({ profile: argv.profile })) :
+  pify(config.getCredentials).bind(config)
 
 Promise.all([getStdin(), getCredentials()])
   .then(([body, credentials]) => {
