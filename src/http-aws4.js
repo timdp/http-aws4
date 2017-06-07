@@ -54,7 +54,8 @@ const argv = yargs
     profile: {
       description: 'AWS profile',
       requiresArg: true,
-      default: null
+      default: null,
+      defaultDescription: '<auto>'
     },
     service: {
       description: 'AWS service name',

@@ -68,6 +68,11 @@ to set it manually.
 If the name of the AWS service cannot be detected from the URL, use this option
 to set it manually.
 
+### --profile PROFILE
+
+Uses the specified profile. Note that setting this option will force reading
+credentials from the credentials file rather than from the environment.
+
 ### --no-color
 
 If you prefer not to colorize the output at all, pass this option, provided by
