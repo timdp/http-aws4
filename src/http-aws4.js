@@ -114,12 +114,6 @@ const logger = CONSOLE_COLORS.reduce((logger, [fn, color]) => {
   return logger
 }, {})
 
-const formatHeaders = (headers, type) => {
-  for (const name of Object.keys(headers).sort()) {
-    logger[type](`${name}: ${headers[name]}`)
-  }
-}
-
 const indent = (code, resp) => {
   if (resp.headers && /\bjson\b/.test(resp.headers['content-type'])) {
     try {
@@ -139,37 +133,51 @@ const highlight = (code, resp) => {
   return code
 }
 
-const formatResponse = (resp, type = 'info') => {
-  if (~argv.print.indexOf('h')) {
-    logger[type](chalk.bold(`${resp.statusCode} ${resp.statusMessage}`))
-    if (resp.headers) {
-      formatHeaders(resp.headers, type)
-      logger[type]()
+const printHeaders = (headers, typedLogger) => {
+  for (const name of Object.keys(headers).sort()) {
+    typedLogger(chalk.dim(`${name}: `) + headers[name])
+  }
+}
+
+const printResponseHeaders = (resp, typedLogger) => {
+  typedLogger(chalk.bold(`HTTP/${resp.httpVersion} ${resp.statusCode} ${resp.statusMessage}`))
+  if (resp.headers) {
+    printHeaders(resp.headers, typedLogger)
+    typedLogger()
+  }
+}
+
+const printResponseBody = (resp, typedLogger) => {
+  if (resp.body == null || resp.body.length === 0) {
+    typedLogger('')
+  } else if (argv.pretty === 'none') {
+    typedLogger(resp.body.toString())
+  } else {
+    const transforms = []
+    if (argv.pretty === 'all' || argv.pretty === 'format') {
+      transforms.push(indent)
     }
+    if (argv.pretty === 'all' || argv.pretty === 'colors') {
+      transforms.push(highlight)
+    }
+    const output = transforms.reduce((prev, transform) => transform(prev, resp),
+      resp.body.toString())
+    typedLogger.bare(output)
+  }
+}
+
+const printResponse = (resp, typedLogger = logger.info) => {
+  if (~argv.print.indexOf('h')) {
+    printResponseHeaders(resp, typedLogger)
   }
   if (~argv.print.indexOf('b')) {
-    if (resp.body == null || resp.body.length === 0) {
-      logger[type]('')
-    } else if (argv.pretty === 'none') {
-      logger[type](resp.body.toString())
-    } else {
-      const transforms = []
-      if (argv.pretty === 'all' || argv.pretty === 'format') {
-        transforms.push(indent)
-      }
-      if (argv.pretty === 'all' || argv.pretty === 'colors') {
-        transforms.push(highlight)
-      }
-      const output = transforms.reduce((prev, transform) => transform(prev, resp),
-        resp.body.toString())
-      logger[type].bare(output)
-    }
+    printResponseBody(resp, typedLogger)
   }
 }
 
 const handleError = (err) => {
   if (err.response != null) {
-    formatResponse(err.response, 'error')
+    printResponse(err.response, logger.error)
   } else {
     logger.error(cleanStack(err.stack))
   }
@@ -196,7 +204,7 @@ const createRequest = (method, url, body, credentials) => {
 const handleRequest = (request, body) => new Promise((resolve, reject) => {
   if (~argv.print.indexOf('H')) {
     logger.log(chalk.bold(`${request.method} ${request.endpoint.href}`))
-    formatHeaders(request.headers, 'log')
+    printHeaders(request.headers, logger.log)
     logger.log()
   }
   if (~argv.print.indexOf('B')) {
@@ -209,6 +217,7 @@ const handleRequest = (request, body) => new Promise((resolve, reject) => {
 const handleResponse = (response) => new Promise((resolve, reject) => {
   response.setEncoding('utf8')
   const metadata = {
+    httpVersion: response.httpVersion,
     statusCode: response.statusCode,
     statusMessage: response.statusMessage,
     headers: response.headers,
@@ -239,5 +248,5 @@ Promise.all([getStdin(), getCredentials()])
     return handleRequest(request, body)
   })
   .then(handleResponse)
-  .then(formatResponse)
+  .then(printResponse)
   .catch(handleError)
