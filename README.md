@@ -2,7 +2,9 @@
 
 [![npm](https://img.shields.io/npm/v/http-aws4.svg)](https://www.npmjs.com/package/http-aws4) [![Dependencies](https://img.shields.io/david/timdp/http-aws4.svg)](https://david-dm.org/timdp/http-aws4) [![JavaScript Standard Style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com/)
 
-Performs AWS Signature Version 4-signed HTTP requests from the command line.
+Performs
+[AWS Signature Version 4](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)-signed
+HTTP requests from the command line.
 
 Inspired by the awesome [HTTPie](https://httpie.org/).
 
