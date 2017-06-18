@@ -29,11 +29,13 @@
   },
   "devDependencies": {
     "babel-cli": "^6.24.0",
-    "babel-preset-env": "^1.2.2"
+    "babel-preset-env": "^1.2.2",
+    "standard": "^10.0.2"
   },
   "scripts": {
     "build": "babel src/http-aws4.js --out-file http-aws4.js",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "test": "standard src/**/*.js"
   },
   "babel": {
     "presets": [
