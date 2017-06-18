@@ -114,74 +114,85 @@ const logger = CONSOLE_COLORS.reduce((logger, [fn, color]) => {
   return logger
 }, {})
 
-const indent = (code, resp) => {
-  if (resp.headers && /\bjson\b/.test(resp.headers['content-type'])) {
+const indent = (blob) => {
+  if (blob.type != null && /\bjson\b/.test(blob.type)) {
     try {
-      return JSON.stringify(JSON.parse(code), null, 2)
+      return {
+        data: JSON.stringify(JSON.parse(blob.data), null, 2),
+        type: blob.type
+      }
     } catch (err) {}
   }
-  return code
+  return blob
 }
 
-const highlight = (code, resp) => {
+const highlight = (blob) => {
   // TODO Convert MIME type to highlight.js language
-  if (resp.headers && !/^text\/plain\b/.test(resp.headers['content-type'])) {
+  if (blob.type != null && !/^text\/plain\b/.test(blob.type)) {
     try {
-      return emphasize.highlightAuto(code).value
+      return {
+        data: emphasize.highlightAuto(blob.data).value,
+        type: blob.type
+      }
     } catch (err) {}
   }
-  return code
+  return blob
 }
 
-const printHeaders = (headers, typedLogger) => {
-  for (const name of Object.keys(headers).sort()) {
-    typedLogger(chalk.dim(`${name}: `) + headers[name])
+const buildReducers = () => {
+  const reducers = []
+  if (argv.pretty === 'all' || argv.pretty === 'format') {
+    reducers.push(indent)
   }
-}
-
-const printResponseHeaders = (resp, typedLogger) => {
-  typedLogger(chalk.bold(`HTTP/${resp.httpVersion} ${resp.statusCode} ${resp.statusMessage}`))
-  if (resp.headers) {
-    printHeaders(resp.headers, typedLogger)
-    typedLogger()
+  if (argv.pretty === 'all' || argv.pretty === 'colors') {
+    reducers.push(highlight)
   }
+  return reducers
 }
 
-const printResponseBody = (resp, typedLogger) => {
-  if (resp.body == null || resp.body.length === 0) {
-    typedLogger('')
-  } else if (argv.pretty === 'none') {
-    typedLogger(resp.body.toString())
-  } else {
-    const transforms = []
-    if (argv.pretty === 'all' || argv.pretty === 'format') {
-      transforms.push(indent)
-    }
-    if (argv.pretty === 'all' || argv.pretty === 'colors') {
-      transforms.push(highlight)
-    }
-    const output = transforms.reduce((prev, transform) => transform(prev, resp),
-      resp.body.toString())
-    typedLogger.bare(output)
+const printHeaders = ({headers}, log) => {
+  for (const name of Object.keys(headers || {}).sort()) {
+    log(chalk.dim(`${name}: `) + headers[name])
   }
 }
 
-const printResponse = (resp, typedLogger = logger.info) => {
-  if (~argv.print.indexOf('h')) {
-    printResponseHeaders(resp, typedLogger)
+const printBody = ({headers, body}, log) => {
+  if (body == null || body.length === 0) {
+    log('')
+    return
   }
-  if (~argv.print.indexOf('b')) {
-    printResponseBody(resp, typedLogger)
+  body = body.toString().trimRight()
+  if (argv.pretty === 'none') {
+    log(body)
+    return
+  }
+  const reducers = buildReducers()
+  const blob = {
+    type: lowercaseKeys(headers)['content-type'],
+    data: body
+  }
+  const {data} = reducers.reduce((prev, transform) => transform(prev), blob)
+  log.bare(data)
+}
+
+const printMessage = (msg, line, headerFlag, bodyFlag, log) => {
+  if (~argv.print.indexOf(headerFlag)) {
+    log(chalk.bold(line))
+    printHeaders(msg, log)
+    log()
+  }
+  if (~argv.print.indexOf(bodyFlag)) {
+    printBody(msg, log)
+    log()
   }
 }
 
-const handleError = (err) => {
-  if (err.response != null) {
-    printResponse(err.response, logger.error)
-  } else {
-    logger.error(cleanStack(err.stack))
-  }
-  process.exit(1)
+const printRequestResponse = (req, resp, log) => {
+  // TODO Determine HTTP version
+  const reqLine = `${req.method} ${req.endpoint.href} HTTP/1.1`
+  printMessage(req, reqLine, 'H', 'B', logger.log)
+  const respLine = `HTTP/${resp.httpVersion} ${resp.statusCode} ${resp.statusMessage}`
+  printMessage(resp, respLine, 'h', 'b', log)
 }
 
 const createRequest = (method, url, body, credentials) => {
@@ -200,19 +211,6 @@ const createRequest = (method, url, body, credentials) => {
   signer.addAuthorization(credentials, new Date())
   return request
 }
-
-const handleRequest = (request, body) => new Promise((resolve, reject) => {
-  if (~argv.print.indexOf('H')) {
-    logger.log(chalk.bold(`${request.method} ${request.endpoint.href}`))
-    printHeaders(request.headers, logger.log)
-    logger.log()
-  }
-  if (~argv.print.indexOf('B')) {
-    logger.log((body != null) ? body.toString().trimRight() : '')
-    logger.log()
-  }
-  client.handleRequest(request, null, resolve, reject)
-})
 
 const handleResponse = (response) => new Promise((resolve, reject) => {
   response.setEncoding('utf8')
@@ -239,14 +237,33 @@ const handleResponse = (response) => new Promise((resolve, reject) => {
 })
 
 const getCredentials = (argv.profile != null)
-  ? () => Promise.resolve(new AWS.SharedIniFileCredentials({ profile: argv.profile }))
+  ? () => Promise.resolve(new AWS.SharedIniFileCredentials({profile: argv.profile}))
   : pify(config.getCredentials).bind(config)
 
-Promise.all([getStdin(), getCredentials()])
-  .then(([body, credentials]) => {
-    const request = createRequest(method, url, body, credentials)
-    return handleRequest(request, body)
-  })
-  .then(handleResponse)
-  .then(printResponse)
-  .catch(handleError)
+const main = () => {
+  let request
+  return Promise.all([getStdin(), getCredentials()])
+    .then(([body, credentials]) => {
+      request = createRequest(method, url, body, credentials)
+      return new Promise((resolve, reject) => {
+        client.handleRequest(request, null, resolve, reject)
+      })
+    })
+    .then(handleResponse)
+    .catch((err) => {
+      if (err.response != null) {
+        printRequestResponse(request, err.response, logger.error)
+        process.exit(1)
+      } else {
+        throw err
+      }
+    })
+    .then((response) => {
+      printRequestResponse(request, response, logger.info)
+    })
+}
+
+main().catch((err) => {
+  logger.error(cleanStack(err.stack))
+  process.exit(254)
+})
