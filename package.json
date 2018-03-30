@@ -4,7 +4,8 @@
   "description": "Performs AWS Signature Version 4-signed HTTP requests from the command line.",
   "author": "Tim De Pauw <hi@tmdpw.eu> (https://tmdpw.eu/)",
   "engines": {
-    "node": ">=4"
+    "node": ">=4",
+    "yarn": "*"
   },
   "license": "MIT",
   "files": [
