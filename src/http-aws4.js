@@ -237,7 +237,10 @@ const handleResponse = (response) => new Promise((resolve, reject) => {
 })
 
 const getCredentials = (argv.profile != null)
-  ? () => Promise.resolve(new AWS.SharedIniFileCredentials({profile: argv.profile}))
+  ? () => {
+    const creds = new AWS.SharedIniFileCredentials({profile: argv.profile});
+    return pify(creds.refresh).bind(creds)().then(() => creds);
+  }
   : pify(config.getCredentials).bind(config)
 
 const main = () => {
