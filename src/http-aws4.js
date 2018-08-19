@@ -7,13 +7,10 @@ const chalk = require('chalk')
 const emphasize = require('emphasize')
 const cleanStack = require('clean-stack')
 const getStdin = require('get-stdin')
-const pify = require('pify')
+const { pkg } = require('read-pkg-up').sync()
 const yargs = require('yargs')
-const pkg = require('./package.json')
 
-const USER_AGENT = `${pkg.name}/${pkg.version} (https://github.com/${
-  pkg.repository
-})`
+const USER_AGENT = `${pkg.name}/${pkg.version} (${pkg.homepage})`
 
 const CONSOLE_COLORS = [
   ['log', 'blue'],
@@ -25,8 +22,6 @@ const CONSOLE_COLORS = [
 const argv = yargs
   .demand(1)
   .usage('Usage: $0 [options] [method] <url>')
-  .version()
-  .help()
   .options({
     print: {
       description: 'Parts of the request and response to output',
@@ -66,7 +61,9 @@ const argv = yargs
       default: null,
       defaultDescription: '<auto>'
     }
-  }).argv
+  })
+  .strict()
+  .parse()
 
 const args = argv._
 let service, method, url, region
@@ -241,13 +238,36 @@ const handleResponse = response =>
     response.on('error', reject)
   })
 
-const getCredentials =
-  argv.profile != null
-    ? () =>
-        Promise.resolve(
-          new AWS.SharedIniFileCredentials({ profile: argv.profile })
-        )
-    : pify(config.getCredentials).bind(config)
+const getCredentialsFromSharedIniFile = () =>
+  new Promise((resolve, reject) => {
+    const creds = new AWS.SharedIniFileCredentials({ profile: argv.profile })
+    creds.refresh(err => {
+      if (err != null) {
+        reject(err)
+      } else {
+        resolve(creds)
+      }
+    })
+  })
+
+const getCredentialsFromConfig = () =>
+  new Promise((resolve, reject) => {
+    config.getCredentials((err, creds) => {
+      if (err != null) {
+        reject(err)
+      } else {
+        resolve(creds)
+      }
+    })
+  })
+
+const getCredentials = () => {
+  const getCredentialsImpl =
+    argv.profile != null
+      ? getCredentialsFromSharedIniFile
+      : getCredentialsFromConfig
+  return getCredentialsImpl()
+}
 
 const main = () => {
   let request
