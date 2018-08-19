@@ -11,7 +11,9 @@ const pify = require('pify')
 const yargs = require('yargs')
 const pkg = require('./package.json')
 
-const USER_AGENT = `${pkg.name}/${pkg.version} (https://github.com/${pkg.repository})`
+const USER_AGENT = `${pkg.name}/${pkg.version} (https://github.com/${
+  pkg.repository
+})`
 
 const CONSOLE_COLORS = [
   ['log', 'blue'],
@@ -31,7 +33,7 @@ const argv = yargs
       alias: 'p',
       requiresArg: true,
       default: process.stdout.isTTY ? 'hb' : 'b',
-      coerce: (val) => {
+      coerce: val => {
         if (!/^[HBhb]+$/.test(val)) {
           throw new Error('Allowed flags: HBhb')
         }
@@ -64,8 +66,7 @@ const argv = yargs
       default: null,
       defaultDescription: '<auto>'
     }
-  })
-  .argv
+  }).argv
 
 const args = argv._
 let service, method, url, region
@@ -100,13 +101,13 @@ while (args.length > 0) {
   headers[arg.substr(0, pos).toLowerCase()] = arg.substr(pos + 1)
 }
 
-const config = new AWS.Config({region})
+const config = new AWS.Config({ region })
 const client = new AWS.NodeHttpClient()
 
 const logger = CONSOLE_COLORS.reduce((logger, [fn, color]) => {
   const fmt = chalk[color]
   logger[fn] = (...args) => {
-    console[fn].apply(console, args.map((arg) => fmt(arg)))
+    console[fn].apply(console, args.map(arg => fmt(arg)))
   }
   logger[fn].bare = (...args) => {
     console[fn].apply(console, args)
@@ -114,7 +115,7 @@ const logger = CONSOLE_COLORS.reduce((logger, [fn, color]) => {
   return logger
 }, {})
 
-const indent = (blob) => {
+const indent = blob => {
   if (blob.type != null && /\bjson\b/.test(blob.type)) {
     try {
       return {
@@ -126,7 +127,7 @@ const indent = (blob) => {
   return blob
 }
 
-const highlight = (blob) => {
+const highlight = blob => {
   // TODO Convert MIME type to highlight.js language
   if (blob.type != null && !/^text\/plain\b/.test(blob.type)) {
     try {
@@ -150,13 +151,13 @@ const buildReducers = () => {
   return reducers
 }
 
-const printHeaders = ({headers}, log) => {
+const printHeaders = ({ headers }, log) => {
   for (const name of Object.keys(headers || {}).sort()) {
     log(chalk.dim(`${name}: `) + headers[name])
   }
 }
 
-const printBody = ({headers, body}, log) => {
+const printBody = ({ headers, body }, log) => {
   if (body == null || body.length === 0) {
     log('')
     return
@@ -171,7 +172,7 @@ const printBody = ({headers, body}, log) => {
     type: lowercaseKeys(headers)['content-type'],
     data: body
   }
-  const {data} = reducers.reduce((prev, transform) => transform(prev), blob)
+  const { data } = reducers.reduce((prev, transform) => transform(prev), blob)
   log.bare(data)
 }
 
@@ -191,7 +192,9 @@ const printRequestResponse = (req, resp, log) => {
   // TODO Determine HTTP version
   const reqLine = `${req.method} ${req.endpoint.href} HTTP/1.1`
   printMessage(req, reqLine, 'H', 'B', logger.log)
-  const respLine = `HTTP/${resp.httpVersion} ${resp.statusCode} ${resp.statusMessage}`
+  const respLine = `HTTP/${resp.httpVersion} ${resp.statusCode} ${
+    resp.statusMessage
+  }`
   printMessage(resp, respLine, 'h', 'b', log)
 }
 
@@ -204,41 +207,47 @@ const createRequest = (method, url, body, credentials) => {
   })
   request.headers = Object.assign(
     lowercaseKeys(request.headers),
-    {'user-agent': USER_AGENT},
+    { 'user-agent': USER_AGENT },
     headers,
-    {host: endpoint.host})
+    { host: endpoint.host }
+  )
   const signer = new AWS.Signers.V4(request, service)
   signer.addAuthorization(credentials, new Date())
   return request
 }
 
-const handleResponse = (response) => new Promise((resolve, reject) => {
-  response.setEncoding('utf8')
-  const metadata = {
-    httpVersion: response.httpVersion,
-    statusCode: response.statusCode,
-    statusMessage: response.statusMessage,
-    headers: response.headers,
-    body: ''
-  }
-  response.on('data', (data) => {
-    metadata.body += data
-  })
-  response.on('end', () => {
-    if (metadata.statusCode < 200 || metadata.statusCode >= 300) {
-      const error = new Error()
-      error.response = metadata
-      reject(error)
-    } else {
-      resolve(metadata)
+const handleResponse = response =>
+  new Promise((resolve, reject) => {
+    response.setEncoding('utf8')
+    const metadata = {
+      httpVersion: response.httpVersion,
+      statusCode: response.statusCode,
+      statusMessage: response.statusMessage,
+      headers: response.headers,
+      body: ''
     }
+    response.on('data', data => {
+      metadata.body += data
+    })
+    response.on('end', () => {
+      if (metadata.statusCode < 200 || metadata.statusCode >= 300) {
+        const error = new Error()
+        error.response = metadata
+        reject(error)
+      } else {
+        resolve(metadata)
+      }
+    })
+    response.on('error', reject)
   })
-  response.on('error', reject)
-})
 
-const getCredentials = (argv.profile != null)
-  ? () => Promise.resolve(new AWS.SharedIniFileCredentials({profile: argv.profile}))
-  : pify(config.getCredentials).bind(config)
+const getCredentials =
+  argv.profile != null
+    ? () =>
+        Promise.resolve(
+          new AWS.SharedIniFileCredentials({ profile: argv.profile })
+        )
+    : pify(config.getCredentials).bind(config)
 
 const main = () => {
   let request
@@ -250,7 +259,7 @@ const main = () => {
       })
     })
     .then(handleResponse)
-    .catch((err) => {
+    .catch(err => {
       if (err.response != null) {
         printRequestResponse(request, err.response, logger.error)
         process.exit(1)
@@ -258,12 +267,12 @@ const main = () => {
         throw err
       }
     })
-    .then((response) => {
+    .then(response => {
       printRequestResponse(request, response, logger.info)
     })
 }
 
-main().catch((err) => {
+main().catch(err => {
   logger.error(cleanStack(err.stack))
   process.exit(254)
 })
