@@ -7,7 +7,7 @@ const chalk = require('chalk')
 const emphasize = require('emphasize')
 const cleanStack = require('clean-stack')
 const getStdin = require('get-stdin')
-const { pkg } = require('read-pkg-up').sync()
+const { pkg } = require('read-pkg-up').sync({ cwd: __dirname })
 const yargs = require('yargs')
 
 const USER_AGENT = `${pkg.name}/${pkg.version} (${pkg.homepage})`
